@@ -21,7 +21,7 @@ function TimeDisplay({ label, value, testId, animate, onCopy }: TimeDisplayProps
 
   return (
     <div
-      className={`flex justify-between px-4 py-3 bg-[var(--bg-secondary)] rounded-lg transition-all duration-200 cursor-pointer hover:bg-[var(--bg-secondary)]/80 ${
+      className={`flex justify-between px-4 py-3 bg-[var(--bg-secondary)] rounded-lg transition-all duration-200 cursor-pointer hover:bg-[var(--bg-secondary)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--bg-primary)] ${
         animate ? 'scale-[1.02] opacity-90' : 'scale-100 opacity-100'
       }`}
       onClick={handleClick}

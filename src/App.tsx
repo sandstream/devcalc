@@ -4,6 +4,7 @@ import { evaluate, CalculatorError } from './utils/calculator'
 import type { CalculatorResult } from './utils/calculator'
 import { useDebounce } from './hooks/useDebounce'
 import { useClipboard } from './hooks/useClipboard'
+import { useHistory } from './hooks/useHistory'
 import { ResultsDisplay } from './components/ResultsDisplay'
 import { TimestampDisplay } from './components/TimestampDisplay'
 import { Toast } from './components/Toast'
@@ -14,6 +15,7 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedExpression = useDebounce(expression, 150)
   const { copied, copyToClipboard, clearCopied } = useClipboard()
+  const { addToHistory, navigateHistory, resetHistoryNavigation } = useHistory()
 
   const { result, error } = useMemo((): { result: CalculatorResult | null; error: string | null } => {
     if (!debouncedExpression.trim()) return { result: null, error: null }
@@ -47,9 +49,42 @@ function App() {
     copyToClipboard(value)
   }, [copyToClipboard])
 
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Arrow Up: Navigate to older history
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        const historyExpression = navigateHistory('up', expression)
+        if (historyExpression !== null) {
+          setExpression(historyExpression)
+        }
+        return
+      }
+
+      // Arrow Down: Navigate to newer history
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        const historyExpression = navigateHistory('down', expression)
+        if (historyExpression !== null) {
+          setExpression(historyExpression)
+        }
+        return
+      }
+
+      // Enter: Add current expression to history (for explicit commit)
+      if (e.key === 'Enter' && expression.trim()) {
+        addToHistory(expression)
+        resetHistoryNavigation()
+        return
+      }
+    },
+    [expression, navigateHistory, addToHistory, resetHistoryNavigation]
+  )
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Handle Escape in input
-    if (e.key === 'Escape' && document.activeElement === inputRef.current) {
+    // Handle Escape globally: clear input and focus it
+    if (e.key === 'Escape') {
+      e.preventDefault()
       handleClear()
       return
     }
@@ -85,9 +120,10 @@ function App() {
           type="text"
           value={expression}
           onChange={(e) => setExpression(e.target.value)}
+          onKeyDown={handleInputKeyDown}
           placeholder="Enter expression..."
           autoFocus
-          className={`w-full px-4 py-3 pr-10 text-xl font-mono bg-[var(--bg-secondary)] text-[var(--text-primary)] border rounded-lg focus:outline-none ${
+          className={`w-full px-4 py-3 pr-10 text-xl font-mono bg-[var(--bg-secondary)] text-[var(--text-primary)] border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--bg-primary)] ${
             hasError
               ? 'border-red-500 focus:border-red-500'
               : 'border-[var(--text-secondary)] focus:border-[var(--accent)]'
@@ -97,7 +133,7 @@ function App() {
         {expression && (
           <button
             onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] rounded"
             data-testid="clear-button"
             aria-label="Clear input"
           >
@@ -121,7 +157,7 @@ function App() {
       <div className="mt-2 w-full max-w-xl flex justify-end">
         <button
           onClick={handleNow}
-          className="px-3 py-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-secondary)]/80 rounded transition-colors"
+          className="px-3 py-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-secondary)]/80 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--bg-primary)]"
           data-testid="now-button"
         >
           Now

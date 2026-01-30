@@ -33,7 +33,7 @@ function BaseDisplay({ label, value, testId, animate, onCopy }: BaseDisplayProps
     <div
       className={`flex justify-between px-4 py-3 bg-[var(--bg-secondary)] rounded-lg transition-all duration-200 ${
         animate ? 'scale-[1.02] opacity-90' : 'scale-100 opacity-100'
-      } ${isClickable ? 'cursor-pointer hover:bg-[var(--bg-secondary)]/80' : ''}`}
+      } ${isClickable ? 'cursor-pointer hover:bg-[var(--bg-secondary)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 focus:ring-offset-[var(--bg-primary)]' : ''}`}
       onClick={handleClick}
       role={isClickable ? 'button' : undefined}
       tabIndex={isClickable ? 0 : undefined}
