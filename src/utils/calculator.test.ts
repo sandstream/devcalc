@@ -240,4 +240,179 @@ describe('Calculator Engine', () => {
       expect(result.decimal).toBe('5');
     });
   });
+
+  describe('Bitwise Operations', () => {
+    describe('Bitwise AND (&)', () => {
+      it('evaluates 42 & 15 as 10', () => {
+        const result = evaluate('42 & 15');
+        expect(result.decimal).toBe('10');
+      });
+
+      it('evaluates 0xFF & 0x0F as 15', () => {
+        const result = evaluate('0xFF & 0x0F');
+        expect(result.decimal).toBe('15');
+      });
+
+      it('evaluates "42 AND 15" word syntax as 10', () => {
+        const result = evaluate('42 AND 15');
+        expect(result.decimal).toBe('10');
+      });
+    });
+
+    describe('Bitwise OR (|)', () => {
+      it('evaluates 42 | 15 as 47', () => {
+        const result = evaluate('42 | 15');
+        expect(result.decimal).toBe('47');
+      });
+
+      it('evaluates 0xF0 | 0x0F as 255', () => {
+        const result = evaluate('0xF0 | 0x0F');
+        expect(result.decimal).toBe('255');
+      });
+
+      it('evaluates "8 OR 4" word syntax as 12', () => {
+        const result = evaluate('8 OR 4');
+        expect(result.decimal).toBe('12');
+      });
+    });
+
+    describe('Bitwise XOR (^)', () => {
+      it('evaluates 42 ^ 15 as 37', () => {
+        const result = evaluate('42 ^ 15');
+        expect(result.decimal).toBe('37');
+      });
+
+      it('evaluates 0xFF ^ 0x0F as 240', () => {
+        const result = evaluate('0xFF ^ 0x0F');
+        expect(result.decimal).toBe('240');
+      });
+
+      it('evaluates "42 XOR 15" word syntax as 37', () => {
+        const result = evaluate('42 XOR 15');
+        expect(result.decimal).toBe('37');
+      });
+    });
+
+    describe('Bitwise NOT (~)', () => {
+      it('evaluates ~0 as -1', () => {
+        const result = evaluate('~0');
+        expect(result.decimal).toBe('-1');
+      });
+
+      it('evaluates ~255 as -256', () => {
+        const result = evaluate('~255');
+        expect(result.decimal).toBe('-256');
+      });
+
+      it('evaluates "NOT 0" word syntax as -1', () => {
+        const result = evaluate('NOT 0');
+        expect(result.decimal).toBe('-1');
+      });
+    });
+
+    describe('Left Shift (<<)', () => {
+      it('evaluates 1 << 4 as 16', () => {
+        const result = evaluate('1 << 4');
+        expect(result.decimal).toBe('16');
+      });
+
+      it('evaluates 8 << 2 as 32', () => {
+        const result = evaluate('8 << 2');
+        expect(result.decimal).toBe('32');
+      });
+
+      it('evaluates "1 SHL 4" word syntax as 16', () => {
+        const result = evaluate('1 SHL 4');
+        expect(result.decimal).toBe('16');
+      });
+    });
+
+    describe('Right Shift (>>)', () => {
+      it('evaluates 16 >> 2 as 4', () => {
+        const result = evaluate('16 >> 2');
+        expect(result.decimal).toBe('4');
+      });
+
+      it('evaluates 255 >> 4 as 15', () => {
+        const result = evaluate('255 >> 4');
+        expect(result.decimal).toBe('15');
+      });
+
+      it('evaluates "16 SHR 2" word syntax as 4', () => {
+        const result = evaluate('16 SHR 2');
+        expect(result.decimal).toBe('4');
+      });
+    });
+
+    describe('Bitwise Operator Precedence', () => {
+      it('respects precedence: 1 | 2 ^ 3 & 4 evaluates correctly', () => {
+        // & has higher precedence than ^, which has higher precedence than |
+        // 3 & 4 = 0, then 2 ^ 0 = 2, then 1 | 2 = 3
+        const result = evaluate('1 | 2 ^ 3 & 4');
+        expect(result.decimal).toBe('3');
+      });
+
+      it('respects shift vs arithmetic precedence: 1 + 1 << 2 = 8', () => {
+        // + has higher precedence than <<
+        // 1 + 1 = 2, then 2 << 2 = 8
+        const result = evaluate('1 + 1 << 2');
+        expect(result.decimal).toBe('8');
+      });
+
+      it('handles parentheses with bitwise ops', () => {
+        const result = evaluate('(1 | 2) << 2');
+        expect(result.decimal).toBe('12');
+      });
+    });
+
+    describe('Mixed Bitwise and Arithmetic', () => {
+      it('evaluates (10 + 5) & 0xF as 15', () => {
+        const result = evaluate('(10 + 5) & 0xF');
+        expect(result.decimal).toBe('15');
+      });
+
+      it('evaluates complex mixed expression', () => {
+        const result = evaluate('(0xFF & 0xF0) >> 4');
+        // 0xFF & 0xF0 = 0xF0 = 240, 240 >> 4 = 15
+        expect(result.decimal).toBe('15');
+      });
+    });
+
+    describe('Word Syntax Case Insensitivity', () => {
+      it('handles lowercase "and"', () => {
+        const result = evaluate('42 and 15');
+        expect(result.decimal).toBe('10');
+      });
+
+      it('handles mixed case "And"', () => {
+        const result = evaluate('42 And 15');
+        expect(result.decimal).toBe('10');
+      });
+
+      it('handles lowercase "or"', () => {
+        const result = evaluate('8 or 4');
+        expect(result.decimal).toBe('12');
+      });
+
+      it('handles lowercase "xor"', () => {
+        const result = evaluate('42 xor 15');
+        expect(result.decimal).toBe('37');
+      });
+
+      it('handles lowercase "not"', () => {
+        const result = evaluate('not 0');
+        expect(result.decimal).toBe('-1');
+      });
+
+      it('handles lowercase "shl"', () => {
+        const result = evaluate('1 shl 4');
+        expect(result.decimal).toBe('16');
+      });
+
+      it('handles lowercase "shr"', () => {
+        const result = evaluate('16 shr 2');
+        expect(result.decimal).toBe('4');
+      });
+    });
+  });
 });

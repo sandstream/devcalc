@@ -12,6 +12,12 @@ type TokenType =
   | 'MULTIPLY'
   | 'DIVIDE'
   | 'MODULO'
+  | 'BITWISE_AND'
+  | 'BITWISE_OR'
+  | 'BITWISE_XOR'
+  | 'BITWISE_NOT'
+  | 'LEFT_SHIFT'
+  | 'RIGHT_SHIFT'
   | 'LPAREN'
   | 'RPAREN'
   | 'EOF';
@@ -36,6 +42,21 @@ export class CalculatorError extends Error {
     super(message);
     this.name = 'CalculatorError';
   }
+}
+
+/**
+ * Preprocess expression to convert word syntax to symbol syntax
+ * Converts: AND -> &, OR -> |, XOR -> ^, NOT -> ~, SHL -> <<, SHR -> >>
+ */
+function preprocessWordSyntax(expression: string): string {
+  // Replace word operators with symbols (case insensitive, word boundaries)
+  return expression
+    .replace(/\bAND\b/gi, '&')
+    .replace(/\bOR\b/gi, '|')
+    .replace(/\bXOR\b/gi, '^')
+    .replace(/\bNOT\b/gi, '~')
+    .replace(/\bSHL\b/gi, '<<')
+    .replace(/\bSHR\b/gi, '>>');
 }
 
 /**
@@ -146,6 +167,40 @@ function tokenize(expression: string): Token[] {
         tokens.push({ type: 'MODULO', value: '%' });
         pos++;
         break;
+      case '&':
+        tokens.push({ type: 'BITWISE_AND', value: '&' });
+        pos++;
+        break;
+      case '|':
+        tokens.push({ type: 'BITWISE_OR', value: '|' });
+        pos++;
+        break;
+      case '^':
+        tokens.push({ type: 'BITWISE_XOR', value: '^' });
+        pos++;
+        break;
+      case '~':
+        tokens.push({ type: 'BITWISE_NOT', value: '~' });
+        pos++;
+        break;
+      case '<':
+        // Check for left shift <<
+        if (pos + 1 < expression.length && expression[pos + 1] === '<') {
+          tokens.push({ type: 'LEFT_SHIFT', value: '<<' });
+          pos += 2;
+        } else {
+          throw new CalculatorError(`Unexpected character: ${char}`);
+        }
+        break;
+      case '>':
+        // Check for right shift >>
+        if (pos + 1 < expression.length && expression[pos + 1] === '>') {
+          tokens.push({ type: 'RIGHT_SHIFT', value: '>>' });
+          pos += 2;
+        } else {
+          throw new CalculatorError(`Unexpected character: ${char}`);
+        }
+        break;
       case '(':
         tokens.push({ type: 'LPAREN', value: '(' });
         pos++;
@@ -165,10 +220,14 @@ function tokenize(expression: string): Token[] {
 
 /**
  * Parser: recursive descent parser for arithmetic expressions
- * Grammar:
+ * Grammar (from lowest to highest precedence):
+ *   bitwiseOr  -> bitwiseXor (('|') bitwiseXor)*
+ *   bitwiseXor -> bitwiseAnd (('^') bitwiseAnd)*
+ *   bitwiseAnd -> shift (('&') shift)*
+ *   shift      -> expression (('<<' | '>>') expression)*
  *   expression -> term (('+' | '-') term)*
- *   term -> factor (('*' | '/' | '%') factor)*
- *   factor -> NUMBER | '(' expression ')' | '-' factor | '+' factor
+ *   term       -> factor (('*' | '/' | '%') factor)*
+ *   factor     -> NUMBER | '(' bitwiseOr ')' | '-' factor | '+' factor | '~' factor
  */
 class Parser {
   private tokens: Token[];
@@ -219,6 +278,13 @@ class Parser {
       return -this.factor();
     }
 
+    // Bitwise NOT (unary)
+    if (token.type === 'BITWISE_NOT') {
+      this.advance();
+      const value = this.factor();
+      return ~Math.trunc(value);
+    }
+
     // Number
     if (token.type === 'NUMBER') {
       this.advance();
@@ -228,7 +294,7 @@ class Parser {
     // Parenthesized expression
     if (token.type === 'LPAREN') {
       this.advance();
-      const result = this.expression();
+      const result = this.bitwiseOr();
       if (this.current().type !== 'RPAREN') {
         throw new CalculatorError('Expected closing parenthesis');
       }
@@ -272,7 +338,7 @@ class Parser {
     return left;
   }
 
-  expression(): number {
+  private expression(): number {
     let left = this.term();
 
     while (
@@ -292,8 +358,64 @@ class Parser {
     return left;
   }
 
+  private shift(): number {
+    let left = this.expression();
+
+    while (
+      this.current().type === 'LEFT_SHIFT' ||
+      this.current().type === 'RIGHT_SHIFT'
+    ) {
+      const op = this.advance();
+      const right = this.expression();
+
+      if (op.type === 'LEFT_SHIFT') {
+        left = Math.trunc(left) << Math.trunc(right);
+      } else {
+        left = Math.trunc(left) >> Math.trunc(right);
+      }
+    }
+
+    return left;
+  }
+
+  private bitwiseAnd(): number {
+    let left = this.shift();
+
+    while (this.current().type === 'BITWISE_AND') {
+      this.advance();
+      const right = this.shift();
+      left = Math.trunc(left) & Math.trunc(right);
+    }
+
+    return left;
+  }
+
+  private bitwiseXor(): number {
+    let left = this.bitwiseAnd();
+
+    while (this.current().type === 'BITWISE_XOR') {
+      this.advance();
+      const right = this.bitwiseAnd();
+      left = Math.trunc(left) ^ Math.trunc(right);
+    }
+
+    return left;
+  }
+
+  private bitwiseOr(): number {
+    let left = this.bitwiseXor();
+
+    while (this.current().type === 'BITWISE_OR') {
+      this.advance();
+      const right = this.bitwiseXor();
+      left = Math.trunc(left) | Math.trunc(right);
+    }
+
+    return left;
+  }
+
   parse(): number {
-    const result = this.expression();
+    const result = this.bitwiseOr();
     if (this.current().type !== 'EOF') {
       throw new CalculatorError(`Unexpected token: ${this.current().value}`);
     }
@@ -341,7 +463,10 @@ export function evaluate(expression: string): CalculatorResult {
     throw new CalculatorError('Empty expression');
   }
 
-  const tokens = tokenize(trimmed);
+  // Preprocess word syntax (AND, OR, XOR, NOT, SHL, SHR)
+  const preprocessed = preprocessWordSyntax(trimmed);
+
+  const tokens = tokenize(preprocessed);
   const parser = new Parser(tokens);
   const result = parser.parse();
 
