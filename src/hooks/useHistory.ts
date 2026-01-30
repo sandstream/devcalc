@@ -84,11 +84,23 @@ export function useHistory() {
     tempExpression.current = ''
   }, [])
 
+  const clearHistory = useCallback(() => {
+    setHistory([])
+    setHistoryIndex(-1)
+    tempExpression.current = ''
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // Ignore storage errors
+    }
+  }, [])
+
   return {
     history,
     addToHistory,
     navigateHistory,
     resetHistoryNavigation,
+    clearHistory,
     historyIndex,
   }
 }

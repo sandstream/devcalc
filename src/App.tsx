@@ -7,6 +7,7 @@ import { useClipboard } from './hooks/useClipboard'
 import { useHistory } from './hooks/useHistory'
 import { ResultsDisplay } from './components/ResultsDisplay'
 import { TimestampDisplay } from './components/TimestampDisplay'
+import { HistoryPanel } from './components/HistoryPanel'
 import { Toast } from './components/Toast'
 import { parseTimestamp, getCurrentTimestamp } from './utils/timestamp'
 
@@ -15,7 +16,7 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedExpression = useDebounce(expression, 150)
   const { copied, copyToClipboard, clearCopied } = useClipboard()
-  const { addToHistory, navigateHistory, resetHistoryNavigation } = useHistory()
+  const { history, addToHistory, navigateHistory, resetHistoryNavigation, clearHistory } = useHistory()
 
   const { result, error } = useMemo((): { result: CalculatorResult | null; error: string | null } => {
     if (!debouncedExpression.trim()) return { result: null, error: null }
@@ -48,6 +49,11 @@ function App() {
   const handleCopy = useCallback((value: string) => {
     copyToClipboard(value)
   }, [copyToClipboard])
+
+  const handleHistorySelect = useCallback((historyExpression: string) => {
+    setExpression(historyExpression)
+    inputRef.current?.focus()
+  }, [])
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -170,6 +176,7 @@ function App() {
       )}
       {result && <ResultsDisplay result={result} onCopy={handleCopy} />}
       {timestampResult.isTimestamp && <TimestampDisplay timestamp={timestampResult} onCopy={handleCopy} />}
+      <HistoryPanel history={history} onSelect={handleHistorySelect} onClear={clearHistory} />
       <Toast message="Copied!" isVisible={copied} onHide={clearCopied} />
     </div>
   )
