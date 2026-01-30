@@ -3,6 +3,7 @@ import type { TimestampResult } from '../utils/timestamp'
 
 interface TimestampDisplayProps {
   timestamp: TimestampResult
+  onCopy: (value: string) => void
 }
 
 interface TimeDisplayProps {
@@ -10,14 +11,24 @@ interface TimeDisplayProps {
   value: string
   testId: string
   animate: boolean
+  onCopy: (value: string) => void
 }
 
-function TimeDisplay({ label, value, testId, animate }: TimeDisplayProps) {
+function TimeDisplay({ label, value, testId, animate, onCopy }: TimeDisplayProps) {
+  const handleClick = () => {
+    onCopy(value)
+  }
+
   return (
     <div
-      className={`flex justify-between px-4 py-3 bg-[var(--bg-secondary)] rounded-lg transition-all duration-200 ${
+      className={`flex justify-between px-4 py-3 bg-[var(--bg-secondary)] rounded-lg transition-all duration-200 cursor-pointer hover:bg-[var(--bg-secondary)]/80 ${
         animate ? 'scale-[1.02] opacity-90' : 'scale-100 opacity-100'
       }`}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleClick()}
+      aria-label={`Copy ${label} value ${value}`}
     >
       <span className="text-[var(--text-secondary)] font-medium">{label}</span>
       <span className="font-mono text-[var(--text-primary)]" data-testid={testId}>
@@ -27,7 +38,7 @@ function TimeDisplay({ label, value, testId, animate }: TimeDisplayProps) {
   )
 }
 
-export function TimestampDisplay({ timestamp }: TimestampDisplayProps) {
+export function TimestampDisplay({ timestamp, onCopy }: TimestampDisplayProps) {
   const [animate, setAnimate] = useState(false)
   const [prevTimestamp, setPrevTimestamp] = useState<string | null>(null)
 
@@ -55,12 +66,14 @@ export function TimestampDisplay({ timestamp }: TimestampDisplayProps) {
         value={timestamp.utc}
         testId="result-utc"
         animate={animate}
+        onCopy={onCopy}
       />
       <TimeDisplay
         label="Local"
         value={timestamp.local}
         testId="result-local"
         animate={animate}
+        onCopy={onCopy}
       />
     </div>
   )

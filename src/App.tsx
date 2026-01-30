@@ -1,16 +1,19 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import './App.css'
 import { evaluate, CalculatorError } from './utils/calculator'
 import type { CalculatorResult } from './utils/calculator'
 import { useDebounce } from './hooks/useDebounce'
+import { useClipboard } from './hooks/useClipboard'
 import { ResultsDisplay } from './components/ResultsDisplay'
 import { TimestampDisplay } from './components/TimestampDisplay'
+import { Toast } from './components/Toast'
 import { parseTimestamp, getCurrentTimestamp } from './utils/timestamp'
 
 function App() {
   const [expression, setExpression] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedExpression = useDebounce(expression, 150)
+  const { copied, copyToClipboard, clearCopied } = useClipboard()
 
   const { result, error } = useMemo((): { result: CalculatorResult | null; error: string | null } => {
     if (!debouncedExpression.trim()) return { result: null, error: null }
@@ -40,15 +43,38 @@ function App() {
     inputRef.current?.focus()
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape') {
+  const handleCopy = useCallback((value: string) => {
+    copyToClipboard(value)
+  }, [copyToClipboard])
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Handle Escape in input
+    if (e.key === 'Escape' && document.activeElement === inputRef.current) {
       handleClear()
+      return
     }
-  }
+
+    // Handle Cmd/Ctrl+C for copying primary (decimal) result
+    if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+      // Only copy if there's no text selection and we have a result
+      const selection = window.getSelection()
+      const hasSelection = selection && selection.toString().length > 0
+
+      if (!hasSelection && result) {
+        e.preventDefault()
+        copyToClipboard(result.decimal)
+      }
+    }
+  }, [result, copyToClipboard])
 
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -59,7 +85,6 @@ function App() {
           type="text"
           value={expression}
           onChange={(e) => setExpression(e.target.value)}
-          onKeyDown={handleKeyDown}
           placeholder="Enter expression..."
           autoFocus
           className={`w-full px-4 py-3 pr-10 text-xl font-mono bg-[var(--bg-secondary)] text-[var(--text-primary)] border rounded-lg focus:outline-none ${
@@ -107,8 +132,9 @@ function App() {
           {error}
         </div>
       )}
-      {result && <ResultsDisplay result={result} />}
-      {timestampResult.isTimestamp && <TimestampDisplay timestamp={timestampResult} />}
+      {result && <ResultsDisplay result={result} onCopy={handleCopy} />}
+      {timestampResult.isTimestamp && <TimestampDisplay timestamp={timestampResult} onCopy={handleCopy} />}
+      <Toast message="Copied!" isVisible={copied} onHide={clearCopied} />
     </div>
   )
 }

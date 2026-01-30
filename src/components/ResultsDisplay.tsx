@@ -3,6 +3,7 @@ import type { CalculatorResult } from '../utils/calculator'
 
 interface ResultsDisplayProps {
   result: CalculatorResult
+  onCopy: (value: string) => void
 }
 
 interface BaseDisplayProps {
@@ -10,14 +11,34 @@ interface BaseDisplayProps {
   value: string
   testId: string
   animate: boolean
+  onCopy: (value: string) => void
 }
 
-function BaseDisplay({ label, value, testId, animate }: BaseDisplayProps) {
+function stripPrefix(value: string): string {
+  if (value === 'N/A') return value
+  // Remove 0x, 0b, 0o prefixes for copying
+  return value.replace(/^-?0[xbo]/, (match) => (match.startsWith('-') ? '-' : ''))
+}
+
+function BaseDisplay({ label, value, testId, animate, onCopy }: BaseDisplayProps) {
+  const handleClick = () => {
+    if (value !== 'N/A') {
+      onCopy(stripPrefix(value))
+    }
+  }
+
+  const isClickable = value !== 'N/A'
+
   return (
     <div
       className={`flex justify-between px-4 py-3 bg-[var(--bg-secondary)] rounded-lg transition-all duration-200 ${
         animate ? 'scale-[1.02] opacity-90' : 'scale-100 opacity-100'
-      }`}
+      } ${isClickable ? 'cursor-pointer hover:bg-[var(--bg-secondary)]/80' : ''}`}
+      onClick={handleClick}
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={isClickable ? (e) => e.key === 'Enter' && handleClick() : undefined}
+      aria-label={isClickable ? `Copy ${label} value ${value}` : undefined}
     >
       <span className="text-[var(--text-secondary)] font-medium">{label}</span>
       <span className="font-mono text-[var(--text-primary)]" data-testid={testId}>
@@ -27,7 +48,7 @@ function BaseDisplay({ label, value, testId, animate }: BaseDisplayProps) {
   )
 }
 
-export function ResultsDisplay({ result }: ResultsDisplayProps) {
+export function ResultsDisplay({ result, onCopy }: ResultsDisplayProps) {
   const [animate, setAnimate] = useState(false)
   const [prevResult, setPrevResult] = useState<string | null>(null)
 
@@ -51,24 +72,28 @@ export function ResultsDisplay({ result }: ResultsDisplayProps) {
         value={result.decimal}
         testId="result-dec"
         animate={animate}
+        onCopy={onCopy}
       />
       <BaseDisplay
         label="HEX"
         value={result.hex}
         testId="result-hex"
         animate={animate}
+        onCopy={onCopy}
       />
       <BaseDisplay
         label="BIN"
         value={result.binary}
         testId="result-bin"
         animate={animate}
+        onCopy={onCopy}
       />
       <BaseDisplay
         label="OCT"
         value={result.octal}
         testId="result-oct"
         animate={animate}
+        onCopy={onCopy}
       />
     </div>
   )
