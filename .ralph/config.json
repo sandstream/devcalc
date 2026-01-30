@@ -1,0 +1,20 @@
+{
+  "version": "1.0.11",
+  "language": "en",
+  "provider": "hcloud",
+  "vm_name": "ralph-ollama",
+  "region": "fsn1",
+  "vm_ip": "",
+  "user": "petersandstrom",
+  "notifications": {
+    "ntfy_enabled": true,
+    "ntfy_topic": "ralph-notify"
+  },
+  "github": {
+    "username": "sandstream"
+  },
+  "agent": "claude",
+  "claude": {
+    "auth_method": "subscription"
+  }
+}
