@@ -4,6 +4,8 @@ import { evaluate, CalculatorError } from './utils/calculator'
 import type { CalculatorResult } from './utils/calculator'
 import { useDebounce } from './hooks/useDebounce'
 import { ResultsDisplay } from './components/ResultsDisplay'
+import { TimestampDisplay } from './components/TimestampDisplay'
+import { parseTimestamp, getCurrentTimestamp } from './utils/timestamp'
 
 function App() {
   const [expression, setExpression] = useState('')
@@ -22,10 +24,19 @@ function App() {
     }
   }, [debouncedExpression])
 
+  const timestampResult = useMemo(() => {
+    return parseTimestamp(debouncedExpression)
+  }, [debouncedExpression])
+
   const hasError = debouncedExpression.trim() !== '' && error !== null
 
   const handleClear = () => {
     setExpression('')
+    inputRef.current?.focus()
+  }
+
+  const handleNow = () => {
+    setExpression(getCurrentTimestamp())
     inputRef.current?.focus()
   }
 
@@ -82,12 +93,22 @@ function App() {
           </button>
         )}
       </div>
+      <div className="mt-2 w-full max-w-xl flex justify-end">
+        <button
+          onClick={handleNow}
+          className="px-3 py-1 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-secondary)]/80 rounded transition-colors"
+          data-testid="now-button"
+        >
+          Now
+        </button>
+      </div>
       {hasError && (
         <div className="mt-2 w-full max-w-xl text-red-500 text-sm" data-testid="error-message">
           {error}
         </div>
       )}
       {result && <ResultsDisplay result={result} />}
+      {timestampResult.isTimestamp && <TimestampDisplay timestamp={timestampResult} />}
     </div>
   )
 }
