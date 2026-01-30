@@ -5,10 +5,12 @@ import type { CalculatorResult } from './utils/calculator'
 import { useDebounce } from './hooks/useDebounce'
 import { useClipboard } from './hooks/useClipboard'
 import { useHistory } from './hooks/useHistory'
+import { useTheme } from './hooks/useTheme'
 import { ResultsDisplay } from './components/ResultsDisplay'
 import { TimestampDisplay } from './components/TimestampDisplay'
 import { HistoryPanel } from './components/HistoryPanel'
 import { Toast } from './components/Toast'
+import { ThemeToggle } from './components/ThemeToggle'
 import { parseTimestamp, getCurrentTimestamp } from './utils/timestamp'
 
 function App() {
@@ -17,6 +19,7 @@ function App() {
   const debouncedExpression = useDebounce(expression, 150)
   const { copied, copyToClipboard, clearCopied } = useClipboard()
   const { history, addToHistory, navigateHistory, resetHistoryNavigation, clearHistory } = useHistory()
+  const { theme, toggleTheme } = useTheme()
 
   const { result, error } = useMemo((): { result: CalculatorResult | null; error: string | null } => {
     if (!debouncedExpression.trim()) return { result: null, error: null }
@@ -119,6 +122,7 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <ThemeToggle theme={theme} onToggle={toggleTheme} />
       <h1 className="text-3xl font-bold mb-8 text-[var(--text-primary)]">DevCalc</h1>
       <div className="relative w-full max-w-xl">
         <input
